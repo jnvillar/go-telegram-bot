@@ -1,1 +1,1 @@
-web: goTelegramBot
+web: go run main.go
