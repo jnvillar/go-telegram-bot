@@ -1,1 +1,1 @@
-web: goTelegramBot
+web: bin/goTelegramBot
