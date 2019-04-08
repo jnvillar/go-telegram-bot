@@ -1,1 +1,1 @@
-web: bin/go-telegram-bot
+web: go-telegram-bot
