@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bot/commands"
+	"go-telegram-bot/commands"
 	"log"
 	"os"
 
