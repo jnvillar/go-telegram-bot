@@ -2,16 +2,15 @@ package main
 
 import (
 	"go-telegram-bot/commands"
+	"go-telegram-bot/password"
 	"log"
 	"os"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-var CommandHandlers map[string]commands.CommandHandler
-
 func main() {
-	CommandHandlers = loadHandlers()
+	pb := NewPasswordBot()
 	var token = os.Getenv("TELEGRAMTOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
@@ -19,9 +18,7 @@ func main() {
 	}
 
 	bot.Debug = true
-
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -35,30 +32,45 @@ func main() {
 		}
 
 		if update.Message.IsCommand() {
-			msg := handleCommand(update.Message)
+			msg := pb.handleCommand(update.Message)
 			bot.Send(msg)
-		} 
+		}
 	}
 }
 
-func logMessage(message *tgbotapi.Message){
+func logMessage(message *tgbotapi.Message) {
 	log.Printf("[%s] %s", message.From.UserName, message.Text)
 }
 
-func handleCommand(message *tgbotapi.Message) *tgbotapi.MessageConfig{
+type PasswordBot struct {
+	commandHandlers map[string]func(message *tgbotapi.Message) string
+	passwordManager *password.PassWordManager
+}
+
+func NewPasswordBot() PasswordBot {
+	passwordManager := password.New()
+	return PasswordBot{
+		commandHandlers: loadHandlers(passwordManager),
+	}
+}
+
+func (b *PasswordBot) handleCommand(message *tgbotapi.Message) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "")
 	command := message.Command()
-	handler, ok := CommandHandlers[command]
-	if !ok{
+	handler, ok := b.commandHandlers[command]
+	if !ok {
 		msg.Text = "I don't know that command"
-	}else{
-		msg.Text, _ = handler.Handle(message.Text)
+	} else {
+		msg.Text = handler(message)
 	}
 	return &msg
 }
 
-func loadHandlers() map[string]commands.CommandHandler{
-	return map[string]commands.CommandHandler{
-		"help": &commands.HelpHandler{},
+func loadHandlers(pM *password.PassWordManager) map[string]func(message *tgbotapi.Message) string {
+	cH := commands.New(pM)
+	return map[string]func(message *tgbotapi.Message) string{
+		"master": cH.Master,
+		"store":  cH.Store,
+		"load": cH.Load,
 	}
 }
