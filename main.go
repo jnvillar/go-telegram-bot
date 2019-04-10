@@ -3,6 +3,7 @@ package main
 import (
 	"go-telegram-bot/commands"
 	"go-telegram-bot/password"
+	"go-telegram-bot/validator"
 	"log"
 	"os"
 
@@ -13,11 +14,12 @@ func main() {
 	pb := NewPasswordBot()
 	var token = os.Getenv("TELEGRAMTOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)
+
 	if err != nil {
 		log.Panic(err)
 	}
 
-	bot.Debug = true
+	bot.Debug = false
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -56,8 +58,16 @@ func NewPasswordBot() PasswordBot {
 
 func (b *PasswordBot) handleCommand(message *tgbotapi.Message) *tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "")
+
+	ok, err := validator.Length(msg.Text)
+	if err != nil {
+		msg.Text = err.Error()
+		return &msg
+	}
+
 	command := message.Command()
 	handler, ok := b.commandHandlers[command]
+
 	if !ok {
 		msg.Text = "I don't know that command"
 	} else {
